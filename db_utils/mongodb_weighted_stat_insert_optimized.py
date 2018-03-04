@@ -12,7 +12,6 @@ sys.path.insert(-1, os.path.join(cur_path, 'model_tuning'))
 import feature_lists
 import numpy as np
 import pandas as pd
-import datetime
 from pymongo.errors import BulkWriteError, DuplicateKeyError
 
 def latest_stat(cnx):

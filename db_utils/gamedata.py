@@ -10,11 +10,12 @@ sys.path.insert(-1, cur_path)
 
 def update(cnx):
     import pandas as pd
+    import datetime
     print('Starting Game Data Update')
     cursor = cnx.cursor()
     cursor.execute('select max(gamedata.date) from ncaa_bb.gamedata')
     x = cursor.fetchall()
-    
+    x = [[x[0][0]+ datetime.timedelta(days=-1)]]
     
     query = 'select bs.teamname, bs.statdate, od.favorite, od.underdog, homeaway from basestats as bs join oddsdata as od on (bs.teamname = od.favorite OR bs.teamname = od.underdog) and bs.statdate = od.oddsdate where bs.statdate >= "%s-%s-%s"' % (x[0][0].year, x[0][0].month, x[0][0].day)
     cursor.execute(query)

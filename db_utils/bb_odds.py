@@ -52,7 +52,8 @@ teamnames = ['American', 'Beth-Cook', 'Charl South', 'AR Lit Rock', 'AR Lit Rock
              'WI-Grn Bay', 'WI-Milwkee', 'Wagner', 'Wake Forest', 'Wash State', 'Washington', 'Washington', 'Weber State', 'Wichita St',
              'Winthrop', 'Wisconsin', 'Wm & Mary', 'Wofford', 'Wright State', 'Wyoming', 'Xavier', 'Yale', 'Youngs St', 'N Colorado', 'Utah Val St', 'Southern',
              'Miami (OH)', 'Missouri St', 'Citadel', 'St Peters', 'Jacksonville', 'Belmont', 'Austin Peay', 'NC-Asheville',
-             'Miami (FL)', 'Geo Wshgtn', 'Miss State', 'LA Monroe', 'Middle Tenn', 'Fla Atlantic', 'Charlotte', 'LA Lafayette', 'CS Fullerton', 'UC Riverside', 'E Washingtn', 'Wofford', 'E Tenn St', 'Mass Lowell', 'Albany', 'F Dickinson']
+             'Miami (FL)', 'Geo Wshgtn', 'Miss State', 'LA Monroe', 'Middle Tenn', 'Fla Atlantic', 'Charlotte', 'LA Lafayette', 'CS Fullerton', 'UC Riverside', 'E Washingtn', 'Wofford', 'E Tenn St', 'Mass Lowell', 'Albany', 'F Dickinson',
+             'Houston', 'IPFW', 'Boston U']
 
 teamlist = ['American', 'BETHUNE COOKMAN', 'Charleston Sou','Arkansas Lr', 'ARKANSAS LITTLE ROCK', 'Abilene Christian', 'Air Force', 'Akron', 'Alabama A&M', 'Alabama', 'Alabama State', 
                  'Albany NY', 'Alcorn State', 'American Univ', 'Appalachian St', 'Appalachian State', 'Arizona', 'Arizona State', 'Ark Pine Bluff', 
@@ -98,7 +99,8 @@ teamlist = ['American', 'BETHUNE COOKMAN', 'Charleston Sou','Arkansas Lr', 'ARKA
                  'Wisc Green Bay', 'Wisc Milwaukee', 'Wagner', 'Wake Forest', 'Washington State', 'Washington U', 'Washington', 'Weber State', 'Wichita State',
                  'Winthrop', 'Wisconsin', 'William & Mary', 'Wofford', 'Wright State', 'Wyoming', 'Xavier', 'Yale', 'Youngstown State', 'NOCOLORADO', 'Utah Valley st', 'SOUTHERN',
                  'MIAMI (OH)', 'MISSOURI STATE', 'CITADEL', 'SAINT PETERS', 'JACKSONVILLE STATE', 'BELMNT', 'APSU', 'UNC ASHEVILLE',
-                 'MIAMI (FL)', 'GEORGE WASHINGTON', 'MISSISSIPPI STATE', 'LOUISIANA-MONROE', 'MIDDLE TENNESSEE', 'FLORIDA ATLANTIC', 'CHARLOTTE', 'LOUISIANA-LAFAYETTE', 'CAL STATE FULLERTON', 'UC RIVERSIDE', 'EASTERN WASHINGTON', 'TERRIERS', 'EAST TENNESSEE STATE', 'MASSACHUSETTS-LOWELL', 'ALBANY', 'FAIRLEIGH DICKINSON']    
+                 'MIAMI (FL)', 'GEORGE WASHINGTON', 'MISSISSIPPI STATE', 'LOUISIANA-MONROE', 'MIDDLE TENNESSEE', 'FLORIDA ATLANTIC', 'CHARLOTTE', 'LOUISIANA-LAFAYETTE', 'CAL STATE FULLERTON', 'UC RIVERSIDE', 'EASTERN WASHINGTON', 'TERRIERS', 'EAST TENNESSEE STATE', 'MASSACHUSETTS-LOWELL', 'ALBANY', 'FAIRLEIGH DICKINSON',    
+                 'Houston', 'Fort Wayne', 'Boston University']    
 
 nond1 = ['WINSTON SALEM STATE', 'CHAMINADE', 'DICKINSON STATE', 'ARK MONTICELLO', 'FAIR DICKINSON', 'ARK-FORT SMITH', 'USC UPSTATE', 'NORTHERN MICHIGAN', 'CENTENARY', 'ALASKA ANCHORAGE', 
              'UNIV SCIENCES OF PHILA', '', 'DOWLING', 'ALA ANCHORAGE', 'DOMINICAN CAL', 'WESTERN NEW MEXICO', 'MONTREAT', 'ROCHESTER COLLEGE', 'WEST ALABAMA', 'LA SIERRA', 'SAN FRANCISCO STATE', 
@@ -110,6 +112,7 @@ def update(cnx):
     import datetime
     from mysql.connector import IntegrityError
     from datetime import date
+    import difflib 
     
     print('Starting NCAA Basketball Odds Update')
    
@@ -122,6 +125,7 @@ def update(cnx):
     cursor.execute('select max(oddsdata.oddsdate) from ncaa_bb.oddsdata')
     x = cursor.fetchall()
     start_date = x[0][0]
+    start_date = start_date + datetime.timedelta(days=-1) 
     
     cursor.execute('SET SQL_SAFE_UPDATES = 0;')
     cursor.execute('DELETE FROM ncaa_bb.oddsdata WHERE oddsdate >= "%s";' % (start_date))
@@ -278,26 +282,85 @@ def update(cnx):
                                     linejuice = None
                                     overunder = None
                                     overunderjuice = None
+                                    team1_input = None
+                                    team2_input = None
+                                    close1_input = None
+                                    close2_input = None
+                                    close1_matches = None
+                                    close2_matches = None
                                     game = []
                                     
                                     try:
-                                        team1 = oddsteamsdict[team1namelist[each][4:].upper()]
+                                        team1 = oddsteamsdict[team1namelist[each][4:].upper().strip()]
                                     except KeyError:
                                         if team1namelist[each][4:].upper() not in nond1:
-                                            print(team1namelist[each][4:].upper())
-                                            print(url)
-#                                            asdf
-                                        fbsgame = 'no'
-                                        pass
+                                            print('error found at: %s' % (url))
+                                            print('* %s * not listed. ' % (team1namelist[each][4:].upper()))
+                                            
+                                            close1_matches = difflib.get_close_matches(team1namelist[each][4:].strip(), teamlist)
+                                            if len(close1_matches) > 0:
+                                                print('Close matches found.  Select number of option provided, or "X" for manual entry')
+                                                for i, close1_option in enumerate(close1_matches):
+                                                    print('(%s): %s' % (i, close1_option))
+                                                close1_input = input('Selection: ')
+                                                if close1_input.upper() == 'X':
+                                                    print('Please provide name to use, or N to skip')
+                                                    team1_input = input('Team name: ' )  
+                                                else:
+                                                    try:
+                                                        team1_input = close1_matches[int(close1_input)]
+                                                    except KeyError:
+                                                        team1_input = team1namelist[each][4:].upper().strip()
+                                            else:
+                                                print('Please provide name to use, or N to skip')
+                                                team1_input = input('Team name: ' )
+
+                                            while team1_input.upper() not in oddsteamsdict.keys():
+                                                print('Name not matched. Try again. ')
+                                                team1_input = input('Team name:  ')
+                                                if team1_input.upper() in ['NO', 'PASS', 'N']:
+                                                    fbsgame = 'no'
+                                                    break
+                                            team1 = oddsteamsdict[team1_input.upper()]
+                                            print('Add this team name to dictionary.')
+                                        else:
+                                            fbsgame = 'no'
+                                            pass                                                
                                     try:
-                                        team2 = oddsteamsdict[team2namelist[each][4:].upper()]
+                                        team2 = oddsteamsdict[team2namelist[each][4:].upper().strip()]
                                     except KeyError:
                                         if team2namelist[each][4:].upper() not in nond1:
-                                            print(team2namelist[each][4:].upper())
-                                            print(url)
-#                                            fdsa
-                                        fbsgame = 'no'
-                                        pass
+                                            print('error found at: %s' % (url))
+                                            print('* %s * not listed. ' % (team2namelist[each][4:].upper()))
+                                            
+                                            close2_matches = difflib.get_close_matches(team2namelist[each][4:].strip(), teamlist)
+                                            if len(close2_matches) > 0:
+                                                print('Close matches found.  Select number of option provided, or "X" for manual entry')
+                                                for i, close2_option in enumerate(close2_matches):
+                                                    print('(%s): %s' % (i, close2_option))
+                                                close2_input = input('Selection: ')
+                                                if close2_input.upper() == 'X':
+                                                    print('Please provide name to use, or N to skip')
+                                                    team2_input = input('Team name: ' )  
+                                                else:
+                                                    try:
+                                                        team2_input = close2_matches[int(close2_input)]
+                                                    except KeyError:
+                                                        team2_input = team2namelist[each][4:].upper().strip()
+                                            else:
+                                                print('Please provide name to use, or N to skip')
+                                                team2_input = input('Team name: ' )
+                                            while team2_input.upper() not in oddsteamsdict.keys():
+                                                print('Name not matched. Try again. ')
+                                                team2_input = input('Team name:  ')
+                                                if team2_input.upper() in ['NO', 'PASS', 'N']:
+                                                    fbsgame = 'no'
+                                                    break
+                                            team2 = oddsteamsdict[team2_input.upper()]
+                                            print('Add this team name to dictionary.')
+                                        else:
+                                            fbsgame = 'no'
+                                            pass  
         
                                     if fbsgame == 'yes':                                
                                         try:

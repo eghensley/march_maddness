@@ -15,6 +15,7 @@ def update(cnx):
     import datetime
     from mysql.connector import IntegrityError, DataError
     from datetime import date
+    import difflib
     
     print('Starting NCAA Basketball Odds Update')
    
@@ -180,24 +181,85 @@ def update(cnx):
                                     linejuice = None
                                     overunder = None
                                     overunderjuice = None
+                                    team1_input = None
+                                    team2_input = None
+                                    close1_input = None
+                                    close2_input = None
+                                    close1_matches = None
+                                    close2_matches = None
                                     game = []
                                     
                                     try:
-                                        team1 = oddsteamsdict[team1namelist[each][4:].upper()]
+                                        team1 = oddsteamsdict[team1namelist[each][4:].upper().strip()]
                                     except KeyError:
                                         if team1namelist[each][4:].upper() not in nond1:
-                                            print(team1namelist[each][4:].upper())
-                                            print(url)
-                                        fbsgame = 'no'
-                                        pass
+                                            print('error found at: %s' % (url))
+                                            print('* %s * not listed. ' % (team1namelist[each][4:].upper()))
+                                            
+                                            close1_matches = difflib.get_close_matches(team1namelist[each][4:].strip(), teamlist)
+                                            if len(close1_matches) > 0:
+                                                print('Close matches found.  Select number of option provided, or "X" for manual entry')
+                                                for i, close1_option in enumerate(close1_matches):
+                                                    print('(%s): %s' % (i, close1_option))
+                                                close1_input = input('Selection: ')
+                                                if close1_input.upper() == 'X':
+                                                    print('Please provide name to use, or N to skip')
+                                                    team1_input = input('Team name: ' )  
+                                                else:
+                                                    try:
+                                                        team1_input = close1_matches[int(close1_input)]
+                                                    except KeyError:
+                                                        team1_input = team1namelist[each][4:].upper().strip()
+                                            else:
+                                                print('Please provide name to use, or N to skip')
+                                                team1_input = input('Team name: ' )
+
+                                            while team1_input.upper() not in oddsteamsdict.keys():
+                                                print('Name not matched. Try again. ')
+                                                team1_input = input('Team name:  ')
+                                                if team1_input.upper() in ['NO', 'PASS', 'N']:
+                                                    fbsgame = 'no'
+                                                    break
+                                            team1 = oddsteamsdict[team1_input.upper()]
+                                            print('Add this team name to dictionary.')
+                                        else:
+                                            fbsgame = 'no'
+                                            pass                                                
                                     try:
-                                        team2 = oddsteamsdict[team2namelist[each][4:].upper()]
+                                        team2 = oddsteamsdict[team2namelist[each][4:].upper().strip()]
                                     except KeyError:
                                         if team2namelist[each][4:].upper() not in nond1:
-                                            print(team2namelist[each][4:].upper())
-                                            print(url)
-                                        fbsgame = 'no'
-                                        pass
+                                            print('error found at: %s' % (url))
+                                            print('* %s * not listed. ' % (team2namelist[each][4:].upper()))
+                                            
+                                            close2_matches = difflib.get_close_matches(team2namelist[each][4:].strip(), teamlist)
+                                            if len(close2_matches) > 0:
+                                                print('Close matches found.  Select number of option provided, or "X" for manual entry')
+                                                for i, close2_option in enumerate(close2_matches):
+                                                    print('(%s): %s' % (i, close2_option))
+                                                close2_input = input('Selection: ')
+                                                if close2_input.upper() == 'X':
+                                                    print('Please provide name to use, or N to skip')
+                                                    team2_input = input('Team name: ' )  
+                                                else:
+                                                    try:
+                                                        team2_input = close2_matches[int(close2_input)]
+                                                    except KeyError:
+                                                        team2_input = team2namelist[each][4:].upper().strip()
+                                            else:
+                                                print('Please provide name to use, or N to skip')
+                                                team2_input = input('Team name: ' )
+                                            while team2_input.upper() not in oddsteamsdict.keys():
+                                                print('Name not matched. Try again. ')
+                                                team2_input = input('Team name:  ')
+                                                if team2_input.upper() in ['NO', 'PASS', 'N']:
+                                                    fbsgame = 'no'
+                                                    break
+                                            team2 = oddsteamsdict[team2_input.upper()]
+                                            print('Add this team name to dictionary.')
+                                        else:
+                                            fbsgame = 'no'
+                                            pass  
         
                                     if fbsgame == 'yes':                                
                                         try:
