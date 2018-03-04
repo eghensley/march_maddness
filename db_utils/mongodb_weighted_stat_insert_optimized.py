@@ -51,27 +51,27 @@ def aggregate_spread_ha(stat_list, tm, dt, sql_client, sa, fa):
             query = 'SELECT `%s` FROM ncaa_bb.basestats as bs join gamedata as gd on bs.statdate = gd.date and bs.teamname = gd.teamname where gd.teamname = "%s" and location = gd.teamname and statdate < "%s" order by statdate desc limit %s;' % (stat[0], tm.replace('_', ' '), dt, lenth[0])
             cursor.execute(query)
             home_scale = cursor.fetchall()
-            if len(home_scale) == 0:
-                return
             while ((None,)) in home_scale:
                 home_scale.remove((None,))
+            if home_scale == []:
+                home_scale = [0]
             home_scale = np.mean([i for i in home_scale])   
-            if home_scale == 0:
-                return            
+        
             query = 'SELECT `%s` FROM ncaa_bb.basestats as bs join gamedata as gd on bs.statdate = gd.date and bs.teamname = gd.teamname where gd.teamname = "%s" and location = gd.opponent and statdate < "%s" order by statdate desc limit %s;' % (stat[0], tm.replace('_', ' '), dt, lenth[0])
             cursor.execute(query)
             away_scale = cursor.fetchall()
-            if len(away_scale) == 0:
-                return
-            
+           
             while ((None,)) in away_scale:
                 away_scale.remove((None,))
+            if away_scale == []:
+                away_scale = [0]
             away_scale = np.mean([i for i in away_scale]) 
-            if away_scale == 0:
-                return
-            
-            weighted = home_scale/away_scale
-            weighted *= ha_switch
+
+            if away_scale == 0 or home_scale == 0:
+                weighted = 0
+            else:
+                weighted = home_scale/away_scale
+                weighted *= ha_switch
             spread_data['stats']['%s_g_HAspread_%s_%s' % (lenth[0], fa, stat[0])] = weighted
             
     elif sa == 'pts_allowed':
@@ -81,17 +81,25 @@ def aggregate_spread_ha(stat_list, tm, dt, sql_client, sa, fa):
             home_scale = cursor.fetchall()
             while ((None,)) in home_scale:
                 home_scale.remove((None,))
+            if home_scale == []:
+                home_scale = [0]
             home_scale = np.mean([i for i in home_scale])   
             
             query = 'SELECT `%s` FROM ncaa_bb.basestats as bs join gamedata as gd on bs.statdate = gd.date and bs.teamname = gd.teamname where gd.opponent = "%s" and location = gd.opponent and statdate < "%s" order by statdate desc limit %s;' % (stat[0], tm.replace('_', ' '), dt, lenth[0])
             cursor.execute(query)
             away_scale = cursor.fetchall()
+
             while ((None,)) in away_scale:
                 away_scale.remove((None,))
+            if away_scale == []:
+                away_scale = [0]
             away_scale = np.mean([i for i in away_scale]) 
-            
-            weighted = home_scale/away_scale
-            weighted *= ha_switch
+
+            if away_scale == 0 or home_scale == 0:
+                weighted = 0
+            else:                        
+                weighted = home_scale/away_scale
+                weighted *= ha_switch
             spread_data['stats']['%s_g_HAspread_%s_%s' % (lenth[0], fa, stat[0])] = weighted
     return spread_data
 
@@ -120,12 +128,12 @@ def aggregate_weighted_ha(stat_list, tm, dt, sql_client, sa, fa):
             cursor.execute(query)
             scale = cursor.fetchall()
             if len(scale) == 0:
-                return
+                return aggregated_data
             while ((None,)) in scale:
                 scale.remove((None,))
             scale = np.mean([i for i in scale])
             if scale == 0:
-                return
+                return aggregated_data
             weighted = raw/scale
             aggregated_data['stats']['%s_g_HAweight_%s_%s' % (lenth[0], fa, stat[0])] = weighted
     elif sa == 'pts_allowed':
@@ -142,9 +150,13 @@ def aggregate_weighted_ha(stat_list, tm, dt, sql_client, sa, fa):
                 query = 'SELECT `%s` FROM ncaa_bb.basestats as bs join gamedata as gd on bs.statdate = gd.date and bs.teamname = gd.teamname where gd.teamname = "%s" and location = gd.opponent and statdate < "%s" order by statdate desc limit %s;' % (stat[0], opp, dt, lenth[0])
             cursor.execute(query)
             scale = cursor.fetchall()
+            if len(scale) == 0:
+                return aggregated_data
             while ((None,)) in scale:
                 scale.remove((None,))
             scale = np.mean([i for i in scale])
+            if scale == 0:
+                return aggregated_data
             weighted = raw/scale             
             aggregated_data['stats']['%s_g_HAweight_%s_%s' % (lenth[0], fa, stat[0])] = weighted
     return aggregated_data
@@ -166,12 +178,12 @@ def aggregate_weighted_team(data, stat_list, sql_client, sa, fa):
             cursor.execute(query)
             scale = cursor.fetchall()
             if len(scale) == 0:
-                return
+                return data
             while ((None,)) in scale:
                 scale.remove((None,))
             scale = np.mean([i for i in scale])
             if scale == 0:
-                return
+                return data
             weighted = raw/scale
             data['stats']['%s_g_Tweight_%s_%s' % (lenth[0], fa, stat[0])] = weighted
     elif sa == 'pts_allowed':
@@ -184,8 +196,12 @@ def aggregate_weighted_team(data, stat_list, sql_client, sa, fa):
             query = 'SELECT `%s` FROM ncaa_bb.basestats as bs join gamedata as gd on bs.statdate = gd.date and bs.teamname = gd.teamname where gd.teamname = "%s" and statdate < "%s" order by statdate desc limit %s;' % (stat[0], opp, dt, lenth[0])
             cursor.execute(query)
             scale = cursor.fetchall()
+            if len(scale) == 0:
+                return data
             while ((None,)) in scale:
                 scale.remove((None,))
+            if scale == 0:
+                return data
             scale = np.mean([i for i in scale])
             weighted = raw/scale             
             data['stats']['%s_g_Tweight_%s_%s' % (lenth[0], fa, stat[0])] = weighted
@@ -210,11 +226,15 @@ def weighted(queue, mongo, sql, tm_stats, ha_stats, sa, fa):
         if same_team != target_team:
             print('+ %s' % (target_team))
             same_team = target_team
-            same_tmgm = mongo.find_one({'_team':same_team}, sort=[('_id', -1)])['_game']
+            try:
+                same_tmgm = mongo.find_one({'_team':same_team}, sort=[('_id', -1)])['_game']
+            except TypeError:
+                same_tmgm = 0
         same_tmgm += 1
         ha_data = aggregate_weighted_ha(ha_stats, target_team, date_limit, sql, sa, fa)
         tm_data = aggregate_weighted_team(ha_data, tm_stats, sql, sa, fa)
         if tm_data['stats'] == {}:
+            print('SQL Error: %s on %s' % (target_team, date_limit))
             same_tmgm -= 1
             latest_weighted_id -= 1
             continue
@@ -226,6 +246,7 @@ def weighted(queue, mongo, sql, tm_stats, ha_stats, sa, fa):
         duplicate_game_list.append(same_team+str(same_tmgm))
         tm_data['_id'] = latest_weighted_id
         duplicate_id_list.append(latest_weighted_id)
+        tm_data['_team'] = tm_data['_team'].replace(' ', '_')
         return_data.append(tm_data)
         
     try:
@@ -258,16 +279,21 @@ def spread(queue, mongo, sql, tm_stats, ha_stats, sa, fa):
         spread_data = None
         latest_weighted_id += 1
         date_limit = game_idx[:10]
-        target_team = game_idx[10:]    
+        target_team = game_idx[10:] 
+
         if same_team != target_team:
             print('+ %s' % (target_team))
             same_team = target_team
-            same_tmgm = mongo.find_one({'_team':same_team}, sort=[('_id', -1)])['_game']
+            try:
+                same_tmgm = mongo.find_one({'_team':same_team}, sort=[('_id', -1)])['_game']
+            except TypeError:
+                same_tmgm = 0
         same_tmgm += 1
         date_limit = game_idx[:10]
         target_team = game_idx[10:]    
         spread_data = aggregate_spread_ha(ha_stats, target_team, date_limit, sql, sa, fa)
         if spread_data['stats'] == {}:
+            print('SQL Error: %s on %s' % (target_team, date_limit))
             same_tmgm -= 1
             latest_weighted_id -= 1
             continue 
@@ -278,6 +304,7 @@ def spread(queue, mongo, sql, tm_stats, ha_stats, sa, fa):
         duplicate_game_list.append(same_team+str(same_tmgm))
         spread_data['_id'] = latest_weighted_id
         duplicate_id_list.append(latest_weighted_id)
+        spread_data['_team'] = spread_data['_team'].replace(' ', '_')
         return_data.append(spread_data)
 
     try:
@@ -312,6 +339,13 @@ def insert(od, sa, client, mysql_client):
     
     db = client['ncaa_bb']
     
+#    try:
+#        validation_season = db['weighted_%s_%s'% (sa.replace('_', '-'), od.replace('_', '-'))].find_one({'_date': '2017-11-12'}, sort=[('_id', 1)])['_id']
+#        db['weighted_%s_%s'% (sa.replace('_', '-'), od.replace('_', '-'))].delete_many({'_id': {'$gte': validation_season}})
+#        return
+#    except TypeError:
+#        return
+#
 #    try:
 #        validation_season = db['hfa-spread_%s_%s'% (sa.replace('_', '-'), od.replace('_', '-'))].find_one({'_date': '2017-11-10'}, sort=[('_id', 1)])['_id']
 #        db['hfa-spread_%s_%s'% (sa.replace('_', '-'), od.replace('_', '-'))].delete_many({'_id': {'$gte': validation_season}})

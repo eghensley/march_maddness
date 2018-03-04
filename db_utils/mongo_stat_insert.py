@@ -9,14 +9,21 @@ sys.path.insert(-1, os.path.join(cur_path, 'model_conf'))
 sys.path.insert(-1, os.path.join(cur_path, 'db_utils'))
 sys.path.insert(-1, os.path.join(cur_path, 'model_tuning'))
 
+def teamnames(cnx):
+    cursor = cnx.cursor()        
+    query = 'select teamname from teamnames order by teamname asc'
+    cursor.execute(query)
+    names = list(cursor.fetchall())
+    names = [i[0] for i in names]
+    return names
+
 def update(od, sa, client, cnx):
 #    od, sa, client, cnx = 'possessions', 'pts_scored', mongodb_client, mysql_client()
     
     import numpy as np
     import feature_lists
-    import bb_odds
     from pymongo.errors import BulkWriteError, DuplicateKeyError
- 
+    
     db = client['ncaa_bb']
 
     if od == 'offensive_stats':
@@ -30,12 +37,17 @@ def update(od, sa, client, cnx):
             for_against = 'allow'
 
 #    try:
-#        validation_season = db['weighted_%s_%s'% (sa.replace('_','-'), od.replace('_','-'))].find_one({'_date': '2017-11-10'}, sort=[('_id', 1)])['_id']
-#        db['weighted_%s_%s'% (sa.replace('_','-'), od.replace('_','-'))].delete_many({'_id': {'$gte': validation_season}})
+#        validation_season = db['%s_%s'% (sa.replace('_','-'), od.replace('_','-'))].find_one({'_date': '2017-11-10'}, sort=[('_id', 1)])['_id']
+#        db['%s_%s'% (sa.replace('_','-'), od.replace('_','-'))].delete_many({'_id': {'$gte': validation_season}})
 #        return
 #    except TypeError:
 #        return  
-            
+#    try:
+#        db['%s_%s'% (sa.replace('_','-'), od.replace('_','-'))].delete_many({})
+#        return
+#    except TypeError:
+#        return   
+          
     print('---- Beginning %s %s Rolling Avg ----' % (od, sa))
     
     stat_list = []
@@ -44,7 +56,27 @@ def update(od, sa, client, cnx):
             stat_list.append(stt.replace('_game_ha_weighted_', '_g_HAweight_%s_' % (for_against)).replace('_game_team_weighted_', '_g_Tweight_%s_' % (for_against)))
             
             
-    for teamname in list(set(bb_odds.teamnames)):
+    for teamname in list(teamnames(cnx)):
+        if teamname == 'Incarnate Word':
+            continue
+#        last = db['weighted_%s_%s'% (sa.replace('_','-'), od.replace('_','-'))].find_one({'_team':teamname.replace(' ','_')}, sort=[('_game', -1)])
+#        try:
+#            if db['weighted_%s_%s'% (sa.replace('_','-'), od.replace('_','-'))].find_one({'_team':teamname.replace(' ','_'), '_game': last['_game'] - 1})['_date'] == last['_date']:
+#                db['weighted_%s_%s'% (sa.replace('_','-'), od.replace('_','-'))].delete_one({'_team':teamname.replace(' ','_'), '_game': last['_game']})
+#                print(teamname)
+#        except TypeError:
+#            pass
+        
+#        if old_num != each['_game']:
+#                print('Continuance Error: %s %s %s' % (teamname, sa, od))
+#            old_num += 1
+#        old_num = 0
+#        for each in db['weighted_%s_%s'% (sa.replace('_','-'), od.replace('_','-'))].find({'_team':teamname.replace(' ','_')}, sort=[('_game', 1)]):
+#            if old_num != each['_game']:
+#                print('Continuance Error: %s %s %s' % (teamname, sa, od))
+#            old_num += 1
+#    return
+        
         if db['%s_%s'% (sa.replace('_','-'), od.replace('_','-'))].find_one({'_team':teamname.replace(' ','_')}, sort=[('_id', -1)]) is None:
             if db['weighted_%s_%s'% (sa.replace('_','-'), od.replace('_','-'))].find({'_team':teamname.replace(' ','_'), '_game': 2}).count() == 0:
                 continue
@@ -84,13 +116,9 @@ def update(od, sa, client, cnx):
                 start_sum = None
                 start_data = None
         
-        latest = db['%s_%s'% (sa.replace('_','-'), od.replace('_','-'))].find_one({'_team':teamname.replace(' ','_')}, sort=[('_game', -1)])['_game']
-        if latest > 5:
-            latest -= 5
         
+        latest = db['%s_%s'% (sa.replace('_','-'), od.replace('_','-'))].find_one({'_team':teamname.replace(' ','_')}, sort=[('_game', -1)])['_game']      
         limit = db['weighted_%s_%s'% (sa.replace('_','-'), od.replace('_','-'))].find_one({'_team':teamname.replace(' ','_')}, sort=[('_game', -1)])['_game']        
-        
-        
         
         prev_weighted = db['weighted_%s_%s'% (sa.replace('_','-'), od.replace('_','-'))].find_one({'_team':teamname.replace(' ','_'), '_game': latest - 1})['stats']
         roll_weight_prev1 = db['%s_%s'% (sa.replace('_','-'), od.replace('_','-'))].find_one({'_team':teamname.replace(' ','_'), '_game': latest})['stats']        
@@ -162,7 +190,7 @@ def update(od, sa, client, cnx):
                 roll_len, new_weight, prev_weight, prev_sum_1, prev_sum_2, new_avg = None, None, None, None, None, None
             all_team_data.append(roll_data)
             latest = roll_data['_game']
-        
+    
         if update_mongo:
             try:
                 db['%s_%s'% (sa.replace('_','-'), od.replace('_','-'))].insert_many(all_team_data)
@@ -174,4 +202,6 @@ def update(od, sa, client, cnx):
                         db['%s_%s'% (sa.replace('_','-'), od.replace('_','-'))].update_one({'_id': indy_update['_id']}, {'$set': indy_update})     
             print('-- + %s'%(teamname))
             print('---- Updated to %s' % (all_team_data[-1]['_date']))
+            if all_team_data[-1]['_date'].split('-')[0] == '2017':
+                print('Continuance Error: %s' % (teamname))
         
