@@ -52,12 +52,15 @@ def parallel_stats():
             time.sleep(0.5)    
     
 def run():
-#    bb_odds.update(mysql_client() )
-#    bb_future_odds.update(mysql_client())
-#    bb_stats.update(mysql_client() )
-#    gamedata.update(mysql_client() )
+    bb_odds.update(mysql_client() )
+    bb_future_odds.update(mysql_client())
+    bb_stats.update(mysql_client() )
+    gamedata.update(mysql_client() )
+#    for od in ['possessions', 'target', 'offensive_stats', 'defensive_stats']:
+#        for sa in ['pts_scored', 'pts_allowed']:
+#            mongodb_weighted_stat_insert_optimized.insert(od, sa, mongodb_client, mysql_client())
     parallel_weighted()
-#    parallel_stats()
+    parallel_stats()
 
 #    fourfeats_elo.update(mongodb_client, mysql_client())  
 #    derived_insert.update()

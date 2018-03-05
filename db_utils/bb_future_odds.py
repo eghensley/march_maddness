@@ -221,7 +221,7 @@ def update(cnx):
                                                     fbsgame = 'no'
                                                     break
                                             team1 = oddsteamsdict[team1_input.upper()]
-                                            print('Add this team name to dictionary.')
+                                            print('Avoid manual confirmation by adding this team name to dictionary.')
                                         else:
                                             fbsgame = 'no'
                                             pass                                                
@@ -256,11 +256,11 @@ def update(cnx):
                                                     fbsgame = 'no'
                                                     break
                                             team2 = oddsteamsdict[team2_input.upper()]
-                                            print('Add this team name to dictionary.')
+                                            print('Avoid manual confirmation by adding this team name to dictionary.')
                                         else:
                                             fbsgame = 'no'
                                             pass  
-        
+                                        
                                     if fbsgame == 'yes':                                
                                         try:
                                             moneyline1 = float(team1moneylinelist[each])

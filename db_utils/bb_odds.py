@@ -99,7 +99,7 @@ teamlist = ['American', 'BETHUNE COOKMAN', 'Charleston Sou','Arkansas Lr', 'ARKA
                  'Wisc Green Bay', 'Wisc Milwaukee', 'Wagner', 'Wake Forest', 'Washington State', 'Washington U', 'Washington', 'Weber State', 'Wichita State',
                  'Winthrop', 'Wisconsin', 'William & Mary', 'Wofford', 'Wright State', 'Wyoming', 'Xavier', 'Yale', 'Youngstown State', 'NOCOLORADO', 'Utah Valley st', 'SOUTHERN',
                  'MIAMI (OH)', 'MISSOURI STATE', 'CITADEL', 'SAINT PETERS', 'JACKSONVILLE STATE', 'BELMNT', 'APSU', 'UNC ASHEVILLE',
-                 'MIAMI (FL)', 'GEORGE WASHINGTON', 'MISSISSIPPI STATE', 'LOUISIANA-MONROE', 'MIDDLE TENNESSEE', 'FLORIDA ATLANTIC', 'CHARLOTTE', 'LOUISIANA-LAFAYETTE', 'CAL STATE FULLERTON', 'UC RIVERSIDE', 'EASTERN WASHINGTON', 'TERRIERS', 'EAST TENNESSEE STATE', 'MASSACHUSETTS-LOWELL', 'ALBANY', 'FAIRLEIGH DICKINSON',    
+                 'MIAMI (FL)', 'GEORGE WASHINGTON', 'MISSISSIPPI STATE', 'LOUISIANA-MONROE', 'MIDDLE TENNESSEE', 'FLORIDA ATLANTIC', 'CHARLOTTE', 'LOUISIANA-LAFAYETTE', 'CAL STATE FULLERTON', 'UC RIVERSIDE', 'EASTERN WASHINGTON', 'TERRIERS', 'EAST TENNESSEE STATE', 'MASSACHUSETTS-LOWELL', 'ALBANY', 'FAIRLEIGH DICKINSON',
                  'Houston', 'Fort Wayne', 'Boston University']    
 
 nond1 = ['WINSTON SALEM STATE', 'CHAMINADE', 'DICKINSON STATE', 'ARK MONTICELLO', 'FAIR DICKINSON', 'ARK-FORT SMITH', 'USC UPSTATE', 'NORTHERN MICHIGAN', 'CENTENARY', 'ALASKA ANCHORAGE', 
@@ -322,7 +322,7 @@ def update(cnx):
                                                     fbsgame = 'no'
                                                     break
                                             team1 = oddsteamsdict[team1_input.upper()]
-                                            print('Add this team name to dictionary.')
+                                            print('Avoid manual confirmation by adding this team name to dictionary.')
                                         else:
                                             fbsgame = 'no'
                                             pass                                                
@@ -357,11 +357,11 @@ def update(cnx):
                                                     fbsgame = 'no'
                                                     break
                                             team2 = oddsteamsdict[team2_input.upper()]
-                                            print('Add this team name to dictionary.')
+                                            print('Avoid manual confirmation by adding this team name to dictionary.')
                                         else:
                                             fbsgame = 'no'
                                             pass  
-        
+
                                     if fbsgame == 'yes':                                
                                         try:
                                             moneyline1 = float(team1moneylinelist[each])

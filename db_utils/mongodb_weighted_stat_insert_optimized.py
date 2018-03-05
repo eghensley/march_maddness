@@ -13,7 +13,6 @@ output_folder = os.path.join(cur_path, 'model_results')
 import feature_lists
 import numpy as np
 import pandas as pd
-from pymongo.errors import DuplicateKeyError
 from datetime import date
 
 def latest_stat(cnx):
@@ -255,21 +254,25 @@ def weighted(queue, mongo, sql, tm_stats, ha_stats, sa, fa):
         mongo.insert_many(return_data)
     else:
         for indy_update in return_data:
-            if mongo.find_one({'_team':indy_update['_team'], '_date':indy_update['_date']}) is not None:
-                mongo.update_one({'_team':indy_update['_team'], '_date':indy_update['_date']}, {'$set': {'stats':indy_update['stats']}})
-            else:
-                last_date = mongo.find_one({'_team':indy_update['_team']},sort=[('_game', -1)])['_date']
-                if date(int(last_date.split('-')[0]), int(last_date.split('-')[1]), int(last_date.split('-')[2])) < date(int(indy_update['_date'].split('-')[0]), int(indy_update['_date'].split('-')[1]), int(indy_update['_date'].split('-')[2])):
-                    if mongo.find_one({'_team':indy_update['_team']},sort=[('_game', -1)])['_game'] == indy_update['_game'] - 1:
-                        mongo.insert_one(indy_update)
-                    else:
-                        indy_update['_game'] = mongo.find_one({'_team':indy_update['_team']},sort=[('_game', -1)])['_game'] + 1
-                        mongo.insert_one(indy_update)
+            try:
+                if mongo.find_one({'_team':indy_update['_team'], '_date':indy_update['_date']}) is not None:
+                    mongo.update_one({'_team':indy_update['_team'], '_date':indy_update['_date']}, {'$set': {'stats':indy_update['stats']}})
                 else:
-                    f = open(os.path.join(output_folder, '%s-weighted.txt'%(mongo.name)), 'a')
-                    f.write('%s \n'%(indy_update))
-                    f.close()
-
+                    last_date = mongo.find_one({'_team':indy_update['_team']},sort=[('_game', -1)])['_date']
+                    if date(int(last_date.split('-')[0]), int(last_date.split('-')[1]), int(last_date.split('-')[2])) < date(int(indy_update['_date'].split('-')[0]), int(indy_update['_date'].split('-')[1]), int(indy_update['_date'].split('-')[2])):
+                        if mongo.find_one({'_team':indy_update['_team']},sort=[('_game', -1)])['_game'] == indy_update['_game'] - 1:
+                            mongo.insert_one(indy_update)
+                        else:
+                            indy_update['_game'] = mongo.find_one({'_team':indy_update['_team']},sort=[('_game', -1)])['_game'] + 1
+                            mongo.insert_one(indy_update)
+                    else:
+                        f = open(os.path.join(output_folder, '%s-weighted.txt'%(mongo.name)), 'a')
+                        f.write('%s \n'%(indy_update))
+                        f.close()
+            except:
+                f = open(os.path.join(output_folder, '%s-weighted-errors.txt'%(mongo.name)), 'a')
+                f.write('team: %s | date: %s \n'%(indy_update['_team'], indy_update['_date']))
+                f.close()
  
     
 def spread(queue, mongo, sql, tm_stats, ha_stats, sa, fa):
@@ -317,20 +320,25 @@ def spread(queue, mongo, sql, tm_stats, ha_stats, sa, fa):
         mongo.insert_many(return_data)
     else:
         for indy_update in return_data:
-            if mongo.find_one({'_team':indy_update['_team'], '_date':indy_update['_date']}) is not None:
-                mongo.update_one({'_team':indy_update['_team'], '_date':indy_update['_date']}, {'$set': {'stats':indy_update['stats']}})
-            else:
-                last_date = mongo.find_one({'_team':indy_update['_team']},sort=[('_game', -1)])['_date']
-                if date(int(last_date.split('-')[0]), int(last_date.split('-')[1]), int(last_date.split('-')[2])) < date(int(indy_update['_date'].split('-')[0]), int(indy_update['_date'].split('-')[1]), int(indy_update['_date'].split('-')[2])):
-                    if mongo.find_one({'_team':indy_update['_team']},sort=[('_game', -1)])['_game'] == indy_update['_game'] - 1:
-                        mongo.insert_one(indy_update)
-                    else:
-                        indy_update['_game'] = mongo.find_one({'_team':indy_update['_team']},sort=[('_game', -1)])['_game'] + 1
-                        mongo.insert_one(indy_update)
+            try:
+                if mongo.find_one({'_team':indy_update['_team'], '_date':indy_update['_date']}) is not None:
+                    mongo.update_one({'_team':indy_update['_team'], '_date':indy_update['_date']}, {'$set': {'stats':indy_update['stats']}})
                 else:
-                    f = open(os.path.join(output_folder, '%s-weighted.txt'%(mongo.name)), 'a')
-                    f.write('%s \n'%(indy_update))
-                    f.close() 
+                    last_date = mongo.find_one({'_team':indy_update['_team']},sort=[('_game', -1)])['_date']
+                    if date(int(last_date.split('-')[0]), int(last_date.split('-')[1]), int(last_date.split('-')[2])) < date(int(indy_update['_date'].split('-')[0]), int(indy_update['_date'].split('-')[1]), int(indy_update['_date'].split('-')[2])):
+                        if mongo.find_one({'_team':indy_update['_team']},sort=[('_game', -1)])['_game'] == indy_update['_game'] - 1:
+                            mongo.insert_one(indy_update)
+                        else:
+                            indy_update['_game'] = mongo.find_one({'_team':indy_update['_team']},sort=[('_game', -1)])['_game'] + 1
+                            mongo.insert_one(indy_update)
+                    else:
+                        f = open(os.path.join(output_folder, '%s-weighted.txt'%(mongo.name)), 'a')
+                        f.write('%s \n'%(indy_update))
+                        f.close()                    
+            except:
+                f = open(os.path.join(output_folder, '%s-weighted-errors.txt'%(mongo.name)), 'a')
+                f.write('team: %s | date: %s \n'%(indy_update['_team'], indy_update['_date']))
+                f.close()
     
 def insert(od, sa, client, mysql_client):
 #    od, sa, client, mysql_client = 'defensive_stats', 'pts_scored', mongodb_client, mysql_client()    
