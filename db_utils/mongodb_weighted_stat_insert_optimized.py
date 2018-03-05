@@ -12,7 +12,7 @@ sys.path.insert(-1, os.path.join(cur_path, 'model_tuning'))
 import feature_lists
 import numpy as np
 import pandas as pd
-from pymongo.errors import BulkWriteError, DuplicateKeyError
+from pymongo.errors import DuplicateKeyError
 
 def latest_stat(cnx):
     cursor = cnx.cursor()
@@ -248,22 +248,16 @@ def weighted(queue, mongo, sql, tm_stats, ha_stats, sa, fa):
         tm_data['_team'] = tm_data['_team'].replace(' ', '_')
         return_data.append(tm_data)
         
-    try:
+    if mongo.find({}).count() == 0:
         mongo.insert_many(return_data)
-    except BulkWriteError:
+    else:
         for indy_update in return_data:
-            try:
+            if mongo.find_one({'_team':indy_update['_team'], '_date':indy_update['_date']}) is not None:
+                mongo.update_one({'_team':indy_update['_team'], '_date':indy_update['_date']}, {'$set': {'stats':indy_update['stats']}})
+            elif mongo.find_one({'_id':indy_update['_id']}) is None and mongo.find_one({'_team':indy_update['_team']},sort=[('_game', -1)])['_game'] == indy_update['_game'] - 1:
                 mongo.insert_one(indy_update)
-            except DuplicateKeyError:
-                if indy_update['_game'] == mongo.find_one({'_id': indy_update['_id']})['_game'] and indy_update['_team'] == mongo.find_one({'_id': indy_update['_id']})['_team']:
-                    mongo.update_one({'_id': indy_update['_id']}, {'$set': indy_update})
-                else:
-                    update_confimation = input('Mismatching meta data on update: original team = %s vs new team = %s | original game = %s vs new game = %s.  Proceed with Update?' % (mongo.find_one({'_id': indy_update['_id']})['_team'], indy_update['_team'], mongo.find_one({'_id': indy_update['_id']})['_game'], indy_update['_game']))
-                    if update_confimation.upper() in ['Y', 'YES', 'YEAH']:
-                        mongo.update_one({'_id': indy_update['_id']}, {'$set': indy_update})
-                    else:
-                        continue
-   
+            else:
+                raise DuplicateKeyError 
     
 def spread(queue, mongo, sql, tm_stats, ha_stats, sa, fa):
 #    queue, mongo, sql, tm_stats, ha_stats, sa, fa = to_add_spread, db['hfa-spread_%s_%s'% (sa.replace('_', '-'), od.replace('_', '-'))], mysql_client, weighted_team_stats, weighted_ha_stats, 'pts_scored', 'for'
@@ -306,23 +300,16 @@ def spread(queue, mongo, sql, tm_stats, ha_stats, sa, fa):
         spread_data['_team'] = spread_data['_team'].replace(' ', '_')
         return_data.append(spread_data)
 
-    try:
+    if mongo.find({}).count() == 0:
         mongo.insert_many(return_data)
-    except BulkWriteError:
+    else:
         for indy_update in return_data:
-            try:
+            if mongo.find_one({'_team':indy_update['_team'], '_date':indy_update['_date']}) is not None:
+                mongo.update_one({'_team':indy_update['_team'], '_date':indy_update['_date']}, {'$set': {'stats':indy_update['stats']}})
+            elif mongo.find_one({'_id':indy_update['_id']}) is None and mongo.find_one({'_team':indy_update['_team']},sort=[('_game', -1)])['_game'] == indy_update['_game'] - 1:
                 mongo.insert_one(indy_update)
-            except DuplicateKeyError:
-                if indy_update['_game'] == mongo.find_one({'_id': indy_update['_id']})['_game'] and indy_update['_team'] == mongo.find_one({'_id': indy_update['_id']})['_team']:
-                    mongo.update_one({'_id': indy_update['_id']}, {'$set': indy_update})
-                else:
-                    update_confimation = input('Mismatching meta data on update: original team = %s vs new team = %s | original game = %s vs new game = %s.  Proceed with Update?' % (mongo.find_one({'_id': indy_update['_id']})['_team'], indy_update['_team'], mongo.find_one({'_id': indy_update['_id']})['_game'], indy_update['_game']))
-                    if update_confimation.upper() in ['Y', 'YES', 'YEAH']:
-                        mongo.update_one({'_id': indy_update['_id']}, {'$set': indy_update})
-                    else:
-                        continue
-  
-    
+            else:
+                raise DuplicateKeyError    
     
 def insert(od, sa, client, mysql_client):
 #    od, sa, client, mysql_client = 'possessions', 'pts_scored', mongodb_client, mysql_client()    
@@ -337,20 +324,6 @@ def insert(od, sa, client, mysql_client):
             for_against = 'allow'
     
     db = client['ncaa_bb']
-    
-#    try:
-#        validation_season = db['weighted_%s_%s'% (sa.replace('_', '-'), od.replace('_', '-'))].find_one({'_date': '2017-11-12'}, sort=[('_id', 1)])['_id']
-#        db['weighted_%s_%s'% (sa.replace('_', '-'), od.replace('_', '-'))].delete_many({'_id': {'$gte': validation_season}})
-#        return
-#    except TypeError:
-#        return
-#
-#    try:
-#        validation_season = db['hfa-spread_%s_%s'% (sa.replace('_', '-'), od.replace('_', '-'))].find_one({'_date': '2017-11-10'}, sort=[('_id', 1)])['_id']
-#        db['hfa-spread_%s_%s'% (sa.replace('_', '-'), od.replace('_', '-'))].delete_many({'_id': {'$gte': validation_season}})
-#        return
-#    except TypeError:
-#        return
     
     try:
         latest_weighted = db['weighted_%s_%s'% (sa.replace('_', '-'), od.replace('_', '-'))].find_one(sort=[('_id', -1)])['_date']

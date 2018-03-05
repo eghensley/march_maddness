@@ -21,7 +21,8 @@ import vegas_pred_insert
 import predictor_insert
 import bb_future_odds
 import mongodb_weighted_stat_insert_optimized
-
+import multiprocessing
+import time
 def mysql_client():
     sql = mysql.connector.connect(user='root', password=_config.mysql_creds,host='127.0.0.1',database='ncaa_bb')
     return sql
@@ -32,15 +33,32 @@ except:
 
 cnx = mysql_client()
 
+def parallel_weighted():
+    multi_process_jobs = []
+    for od in ['possessions', 'target', 'offensive_stats', 'defensive_stats']:
+        for sa in ['pts_scored', 'pts_allowed']:
+            p = multiprocessing.Process(target = mongodb_weighted_stat_insert_optimized.insert, args = (od, sa, mongodb_client, mysql_client()))
+            multi_process_jobs.append(p)
+            p.start()
+            time.sleep(0.5)    
+
+def parallel_stats():
+    multi_process_jobs = []
+    for od in ['possessions', 'target', 'offensive_stats', 'defensive_stats']:
+        for sa in ['pts_scored', 'pts_allowed']:
+            p = multiprocessing.Process(target = mongo_stat_insert.update, args = (od, sa, mongodb_client, mysql_client()))
+            multi_process_jobs.append(p)
+            p.start()
+            time.sleep(0.5)    
+    
 def run():
-    bb_odds.update(mysql_client() )
-    bb_future_odds.update(mysql_client())
-    bb_stats.update(mysql_client() )
-    gamedata.update(mysql_client() )
-#    for od in ['possessions', 'target', 'offensive_stats', 'defensive_stats']:
-#        for sa in ['pts_scored', 'pts_allowed']:
-#            mongodb_weighted_stat_insert_optimized.insert(od, sa, mongodb_client, mysql_client())
-#            mongo_stat_insert.update(od, sa, mongodb_client, mysql_client())
+#    bb_odds.update(mysql_client() )
+#    bb_future_odds.update(mysql_client())
+#    bb_stats.update(mysql_client() )
+#    gamedata.update(mysql_client() )
+    parallel_weighted()
+#    parallel_stats()
+
 #    fourfeats_elo.update(mongodb_client, mysql_client())  
 #    derived_insert.update()
 #    vegas_pred_insert.update()
