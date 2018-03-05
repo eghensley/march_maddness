@@ -13,6 +13,7 @@ import feature_lists
 import numpy as np
 import pandas as pd
 from pymongo.errors import DuplicateKeyError
+from datetime import date
 
 def latest_stat(cnx):
     cursor = cnx.cursor()
@@ -221,7 +222,8 @@ def weighted(queue, mongo, sql, tm_stats, ha_stats, sa, fa):
         date_limit = game_idx[:10]
         target_team = game_idx[10:]                
         latest_weighted_id += 1
-    
+#        if target_team == 'Furman':
+#            break
         if same_team != target_team:
             print('+ %s' % (target_team))
             same_team = target_team
@@ -254,10 +256,18 @@ def weighted(queue, mongo, sql, tm_stats, ha_stats, sa, fa):
         for indy_update in return_data:
             if mongo.find_one({'_team':indy_update['_team'], '_date':indy_update['_date']}) is not None:
                 mongo.update_one({'_team':indy_update['_team'], '_date':indy_update['_date']}, {'$set': {'stats':indy_update['stats']}})
-            elif mongo.find_one({'_id':indy_update['_id']}) is None and mongo.find_one({'_team':indy_update['_team']},sort=[('_game', -1)])['_game'] == indy_update['_game'] - 1:
-                mongo.insert_one(indy_update)
             else:
-                raise DuplicateKeyError 
+                last_date = mongo.find_one({'_team':indy_update['_team']},sort=[('_game', -1)])['_date']
+                if date(int(last_date.split('-')[0]), int(last_date.split('-')[1]), int(last_date.split('-')[2])) < date(int(indy_update['_date'].split('-')[0]), int(indy_update['_date'].split('-')[1]), int(indy_update['_date'].split('-')[2])):
+                    if mongo.find_one({'_team':indy_update['_team']},sort=[('_game', -1)])['_game'] == indy_update['_game'] - 1:
+                        mongo.insert_one(indy_update)
+                    else:
+                        indy_update['_game'] = mongo.find_one({'_team':indy_update['_team']},sort=[('_game', -1)])['_game'] + 1
+                        mongo.insert_one(indy_update)
+                else:
+                    raise DuplicateKeyError('Continuance Error')
+
+ 
     
 def spread(queue, mongo, sql, tm_stats, ha_stats, sa, fa):
 #    queue, mongo, sql, tm_stats, ha_stats, sa, fa = to_add_spread, db['hfa-spread_%s_%s'% (sa.replace('_', '-'), od.replace('_', '-'))], mysql_client, weighted_team_stats, weighted_ha_stats, 'pts_scored', 'for'
@@ -306,13 +316,19 @@ def spread(queue, mongo, sql, tm_stats, ha_stats, sa, fa):
         for indy_update in return_data:
             if mongo.find_one({'_team':indy_update['_team'], '_date':indy_update['_date']}) is not None:
                 mongo.update_one({'_team':indy_update['_team'], '_date':indy_update['_date']}, {'$set': {'stats':indy_update['stats']}})
-            elif mongo.find_one({'_id':indy_update['_id']}) is None and mongo.find_one({'_team':indy_update['_team']},sort=[('_game', -1)])['_game'] == indy_update['_game'] - 1:
-                mongo.insert_one(indy_update)
             else:
-                raise DuplicateKeyError    
+                last_date = mongo.find_one({'_team':indy_update['_team']},sort=[('_game', -1)])['_date']
+                if date(int(last_date.split('-')[0]), int(last_date.split('-')[1]), int(last_date.split('-')[2])) < date(int(indy_update['_date'].split('-')[0]), int(indy_update['_date'].split('-')[1]), int(indy_update['_date'].split('-')[2])):
+                    if mongo.find_one({'_team':indy_update['_team']},sort=[('_game', -1)])['_game'] == indy_update['_game'] - 1:
+                        mongo.insert_one(indy_update)
+                    else:
+                        indy_update['_game'] = mongo.find_one({'_team':indy_update['_team']},sort=[('_game', -1)])['_game'] + 1
+                        mongo.insert_one(indy_update)
+                else:
+                    raise DuplicateKeyError('Continuance Error')   
     
 def insert(od, sa, client, mysql_client):
-#    od, sa, client, mysql_client = 'possessions', 'pts_scored', mongodb_client, mysql_client()    
+#    od, sa, client, mysql_client = 'possessions', 'pts_allowed', mongodb_client, mysql_client()    
     if od == 'offensive_stats':
         for_against = 'for'
     elif od == 'defensive_stats':
