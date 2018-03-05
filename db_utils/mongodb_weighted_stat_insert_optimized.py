@@ -7,7 +7,8 @@ while cur_path.split('/')[-1] != 'bb_preds':
     cur_path = os.path.abspath(os.path.join(cur_path, os.pardir))
 sys.path.insert(-1, os.path.join(cur_path, 'model_conf'))
 sys.path.insert(-1, os.path.join(cur_path, 'db_utils'))
-sys.path.insert(-1, os.path.join(cur_path, 'model_tuning'))
+sys.path.insert(-1, os.path.join(cur_path, 'model_results'))
+output_folder = os.path.join(cur_path, 'model_results')
 
 import feature_lists
 import numpy as np
@@ -265,7 +266,9 @@ def weighted(queue, mongo, sql, tm_stats, ha_stats, sa, fa):
                         indy_update['_game'] = mongo.find_one({'_team':indy_update['_team']},sort=[('_game', -1)])['_game'] + 1
                         mongo.insert_one(indy_update)
                 else:
-                    raise DuplicateKeyError('Continuance Error')
+                    f = open(os.path.join(output_folder, '%s-weighted.txt'%(mongo.name)), 'a')
+                    f.write('%s \n'%(indy_update))
+                    f.close()
 
  
     
@@ -325,10 +328,12 @@ def spread(queue, mongo, sql, tm_stats, ha_stats, sa, fa):
                         indy_update['_game'] = mongo.find_one({'_team':indy_update['_team']},sort=[('_game', -1)])['_game'] + 1
                         mongo.insert_one(indy_update)
                 else:
-                    raise DuplicateKeyError('Continuance Error')   
+                    f = open(os.path.join(output_folder, '%s-weighted.txt'%(mongo.name)), 'a')
+                    f.write('%s \n'%(indy_update))
+                    f.close() 
     
 def insert(od, sa, client, mysql_client):
-#    od, sa, client, mysql_client = 'possessions', 'pts_allowed', mongodb_client, mysql_client()    
+#    od, sa, client, mysql_client = 'defensive_stats', 'pts_scored', mongodb_client, mysql_client()    
     if od == 'offensive_stats':
         for_against = 'for'
     elif od == 'defensive_stats':
