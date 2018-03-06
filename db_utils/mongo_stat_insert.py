@@ -25,6 +25,9 @@ def update(od, sa, client, cnx):
     from datetime import date
     
     db = client['ncaa_bb']
+#    db['weighted_%s_%s'% (sa.replace('_','-'), od.replace('_','-'))].delete_many({})
+    db['%s_%s'% (sa.replace('_','-'), od.replace('_','-'))].delete_many({})
+    return
 
     if od == 'offensive_stats':
         for_against = 'for'
@@ -42,8 +45,8 @@ def update(od, sa, client, cnx):
             stat_list.append(stt.replace('_game_ha_weighted_', '_g_HAweight_%s_' % (for_against)).replace('_game_team_weighted_', '_g_Tweight_%s_' % (for_against)))
             
     for teamname in list(teamnames(cnx)):
-        if teamname == 'Incarnate Word':
-            continue
+#        if teamname == 'Incarnate Word':
+#            continue
 
         if db['%s_%s'% (sa.replace('_','-'), od.replace('_','-'))].find_one({'_team':teamname.replace(' ','_')}, sort=[('_id', -1)]) is None:
             if db['weighted_%s_%s'% (sa.replace('_','-'), od.replace('_','-'))].find({'_team':teamname.replace(' ','_'), '_game': 2}).count() == 0:

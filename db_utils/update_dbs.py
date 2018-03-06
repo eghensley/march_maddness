@@ -33,34 +33,35 @@ except:
 
 cnx = mysql_client()
 
-def parallel_weighted():
+def parallel_mongo_update():
     multi_process_jobs = []
     for od in ['possessions', 'target', 'offensive_stats', 'defensive_stats']:
         for sa in ['pts_scored', 'pts_allowed']:
-            p = multiprocessing.Process(target = mongodb_weighted_stat_insert_optimized.insert, args = (od, sa, mongodb_client, mysql_client()))
+            p = multiprocessing.Process(target = mongo_stats, args = (od, sa, mongodb_client, mysql_client()))
             multi_process_jobs.append(p)
             p.start()
-            time.sleep(0.5)    
+            time.sleep(.5)
+    while len(multi_process_jobs) > 0:
+        multi_process_jobs = [job for job in multi_process_jobs if job.is_alive()]
+        time.sleep(5)
+    return
 
-def parallel_stats():
-    multi_process_jobs = []
-    for od in ['possessions', 'target', 'offensive_stats', 'defensive_stats']:
-        for sa in ['pts_scored', 'pts_allowed']:
-            p = multiprocessing.Process(target = mongo_stat_insert.update, args = (od, sa, mongodb_client, mysql_client()))
-            multi_process_jobs.append(p)
-            p.start()
-            time.sleep(0.5)    
+def mongo_stats(od_x, sa_x, mongo_db, my_sql):
+    mongodb_weighted_stat_insert_optimized.insert(od_x, sa_x, mongo_db, my_sql)
+    mongo_stat_insert.update(od_x, sa_x, mongo_db, my_sql)   
+    return
     
+#for od in ['possessions', 'target', 'offensive_stats', 'defensive_stats']:
+#    for sa in ['pts_scored', 'pts_allowed']:
+#        mongodb_weighted_stat_insert_optimized.insert(od, sa, mongodb_client, mysql_client())
+#        mongo_stat_insert.update(od, sa, mongodb_client, mysql_client())
 def run():
-    bb_odds.update(mysql_client() )
-    bb_future_odds.update(mysql_client())
-    bb_stats.update(mysql_client() )
-    gamedata.update(mysql_client() )
-#    for od in ['possessions', 'target', 'offensive_stats', 'defensive_stats']:
-#        for sa in ['pts_scored', 'pts_allowed']:
-#            mongodb_weighted_stat_insert_optimized.insert(od, sa, mongodb_client, mysql_client())
-    parallel_weighted()
-    parallel_stats()
+#    bb_odds.update(mysql_client() )
+#    bb_future_odds.update(mysql_client())
+#    bb_stats.update(mysql_client() )
+#    gamedata.update(mysql_client() )
+
+    parallel_mongo_update()
 
 #    fourfeats_elo.update(mongodb_client, mysql_client())  
 #    derived_insert.update()
